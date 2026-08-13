@@ -1,0 +1,14 @@
+Title: Government of India Web Directory
+
+Authority: National Portal of India
+
+Source URL: https://www.india.gov.in/directory/web-directory
+
+Document Type: Government Authority Directory
+
+Description:
+Official directory containing government ministries, departments,
+apex bodies, judiciary, state and district-level government
+organizations and other public authorities.
+
+Status: Official government source
