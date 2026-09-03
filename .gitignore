@@ -16,3 +16,5 @@ processed/extracted_text/
 .vscode/
 .idea/
 *.log
+backend/uploads/
+legal_data/
