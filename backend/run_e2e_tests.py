@@ -1,10 +1,38 @@
 import sys
 import os
 from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+# --- MOCK BROKEN TORCH DUE TO MAX_PATH ISSUE ---
+mock_torch = MagicMock()
+mock_st = MagicMock()
+sys.modules['torch'] = mock_torch
+sys.modules['torch._C'] = mock_torch
+sys.modules['sentence_transformers'] = mock_st
+sys.modules['sentence_transformers.backend'] = mock_st
+sys.modules['sentence_transformers.backend.load'] = mock_st
+sys.modules['transformers'] = MagicMock()
+sys.modules['transformers.configuration_utils'] = MagicMock()
+sys.modules['transformers.generation'] = MagicMock()
+sys.modules['transformers.generation.configuration_utils'] = MagicMock()
+sys.modules['transformers.generation.logits_process'] = MagicMock()
+# -----------------------------------------------
+
+os.environ["JWT_SECRET_KEY"] = "test_secret_key"
+os.environ["GEMINI_API_KEY"] = "dummy_key"
+
 from sqlalchemy import text
 from app.database.connection import engine
 from fastapi.testclient import TestClient
 from app.main import app
+from app.dependencies.auth import get_current_active_user
+from app.models.user import User
+
+def override_get_current_active_user():
+    return User(id=1, email="legacy_admin@digilaw.ai", is_active=True)
+
+app.dependency_overrides[get_current_active_user] = override_get_current_active_user
+
 
 def run_tests():
     print("Initializing TestClient (this will load models and DB)...")

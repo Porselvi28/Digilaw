@@ -1,0 +1,12 @@
+{
+    "pipeline_success_rate": 2,
+    "rag_hit_rate": 0,
+    "extraction_accuracy": 1,
+    "recommendation_coverage": 2,
+    "total_scenarios": 2,
+    "failures": [
+        "scenario_1 - RAG Miss",
+        "scenario_2 - Evidence Miss",
+        "scenario_2 - RAG Miss"
+    ]
+}

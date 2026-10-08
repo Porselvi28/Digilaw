@@ -28,8 +28,9 @@ def ask(request: AskRequest):
         )
 
     except Exception as error:
-
+        import logging
+        logging.getLogger(__name__).error("Ask endpoint error: %s", str(error))
         raise HTTPException(
             status_code=500,
-            detail=str(error)
+            detail="An internal processing error occurred."
         )

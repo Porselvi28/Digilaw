@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, Integer, String, ForeignKey, Text
+from sqlalchemy import DateTime, Integer, String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
@@ -31,5 +31,15 @@ class Document(Base):
     extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     extraction_status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
     extraction_error: Mapped[str | None] = mapped_column(String, nullable=True)
+    
+    # OCR and Size metadata
+    ocr_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    ocr_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    extracted_character_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     case: Mapped["Case"] = relationship(back_populates="documents")
+    evidence_analyses: Mapped[list["EvidenceAnalysis"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan"
+    )

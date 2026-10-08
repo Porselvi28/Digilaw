@@ -6,12 +6,13 @@ import subprocess
 import os
 import sys
 
-print("Starting Uvicorn server...")
-proc = subprocess.Popen(["python", "-m", "uvicorn", "app.main:app", "--port", "8125"])
+def run_api_test():
+    print("Starting Uvicorn server...")
+    proc = subprocess.Popen(["python", "-m", "uvicorn", "app.main:app", "--port", "8125"])
 
-time.sleep(10)  # Wait for HF models to load
+    time.sleep(10)  # Wait for HF models to load
 
-try:
+    try:
     # 1. Check health
     health_req = urllib.request.urlopen("http://localhost:8125/api/health")
     print(f"Health response: {health_req.read().decode()}")
@@ -53,6 +54,7 @@ try:
 except Exception as e:
     print(f"Error during testing: {e}")
     sys.exit(1)
-finally:
-    proc.terminate()
-    proc.wait()
+        proc.wait()
+
+if __name__ == "__main__":
+    run_api_test()

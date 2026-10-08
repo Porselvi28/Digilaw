@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import DateTime, Integer, String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -43,6 +43,16 @@ class Case(Base):
         nullable=False
     )
 
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
+    user: Mapped["User"] = relationship(
+        back_populates="cases"
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
@@ -53,4 +63,30 @@ class Case(Base):
     documents: Mapped[list["Document"]] = relationship(
         back_populates="case",
         cascade="all, delete-orphan"
+    )
+
+    evidence_analyses: Mapped[list["EvidenceAnalysis"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan"
+    )
+
+    legal_relevance_analyses: Mapped[list["LegalRelevanceAnalysis"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan"
+    )
+
+    missing_document_recommendations: Mapped[list["MissingDocumentRecommendation"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan"
+    )
+
+    similar_cases: Mapped[list["SimilarCase"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan"
+    )
+
+    action_plans: Mapped[list["ActionPlan"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan",
+        order_by="ActionPlan.sequence_order"
     )

@@ -7,6 +7,11 @@ __pycache__/
 .venv/
 venv/
 
+# Vector DB — do not commit
+backend/chroma_db/
+
+# Processed data
+processed/
 processed/chroma_db/
 processed/embeddings/
 processed/chunks/
@@ -18,3 +23,7 @@ processed/extracted_text/
 *.log
 backend/uploads/
 legal_data/
+
+# Frontend build output & dependencies
+frontend/node_modules/
+frontend/dist/

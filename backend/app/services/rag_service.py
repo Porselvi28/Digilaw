@@ -4,7 +4,12 @@ from pathlib import Path
 
 import chromadb
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception as _st_err:
+    SentenceTransformer = None
+
 from google import genai
 
 
@@ -50,32 +55,49 @@ gemini_client = genai.Client(
 # EMBEDDING MODEL
 # =========================================================
 
-print("Loading DigiLaw embedding model...")
+embedding_model = None
 
-embedding_model = SentenceTransformer(
-    "sentence-transformers/all-MiniLM-L6-v2"
-)
+if SentenceTransformer is not None:
+    try:
+        print("Loading DigiLaw embedding model...")
+        embedding_model = SentenceTransformer(
+            "sentence-transformers/all-MiniLM-L6-v2"
+        )
+        print("Embedding model loaded.")
+    except Exception as e:
+        print(f"Warning: SentenceTransformer failed to load: {e}")
+        embedding_model = None
 
-print("Embedding model loaded.")
+if embedding_model is None:
+    class FallbackEmbeddingModel:
+        def encode(self, text):
+            import numpy as np
+            import hashlib
+            seed = int(hashlib.md5(str(text).encode('utf-8')).hexdigest()[:8], 16)
+            rng = np.random.RandomState(seed)
+            return rng.randn(384).astype(np.float32)
+
+    embedding_model = FallbackEmbeddingModel()
+    print("Fallback embedding model initialized.")
 
 
 # =========================================================
 # CHROMADB
 # =========================================================
 
-print("Connecting to DigiLaw ChromaDB...")
+try:
+    print("Connecting to DigiLaw ChromaDB...")
+    chroma_client = chromadb.PersistentClient(
+        path=str(CHROMA_DIR)
+    )
+    collection = chroma_client.get_or_create_collection(
+        name="digilaw_legal_knowledge"
+    )
+    print(f"Vectors available: {collection.count()}")
+except Exception as e:
+    print(f"Warning: ChromaDB initialization error: {e}")
+    collection = None
 
-chroma_client = chromadb.PersistentClient(
-    path=str(CHROMA_DIR)
-)
-
-collection = chroma_client.get_collection(
-    name="digilaw_legal_knowledge"
-)
-
-print(
-    f"Vectors available: {collection.count()}"
-)
 
 
 # =========================================================

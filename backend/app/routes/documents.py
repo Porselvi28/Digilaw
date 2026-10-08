@@ -8,9 +8,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.database.connection import get_db
 from app.models.case import Case
+from app.models.user import User
 from app.models.document import Document
 from app.schemas.document import DocumentResponse, DocumentExtractionResponse
+from app.schemas.evidence import EvidenceAnalysisResponse
 from app.services import document_service
+from app.services import evidence_service
+from app.dependencies.auth import get_current_active_user
 
 router = APIRouter()
 
@@ -27,14 +31,29 @@ ALLOWED_MIME_TYPES = {
 }
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB limit
 
+def get_user_document(document_id: int, current_user: User, db: Session) -> Document:
+    # Join with Case to verify ownership
+    db_document = db.query(Document).join(Case).filter(
+        Document.id == document_id, 
+        Case.user_id == current_user.id
+    ).first()
+    
+    if not db_document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document with ID {document_id} not found."
+        )
+    return db_document
+
 @router.post("/documents/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 def upload_document(
     case_id: int = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
-    # 1. Validate Case Exists
-    db_case = db.query(Case).filter(Case.id == case_id).first()
+    # 1. Validate Case Exists and belongs to user
+    db_case = db.query(Case).filter(Case.id == case_id, Case.user_id == current_user.id).first()
     if not db_case:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -130,15 +149,13 @@ def upload_document(
     return db_document
 
 @router.post("/documents/{document_id}/extract", response_model=DocumentExtractionResponse)
-def extract_document(document_id: int, db: Session = Depends(get_db)):
-    # Verify the document exists before extracting
-    db_document = db.query(Document).filter(Document.id == document_id).first()
-    
-    if not db_document:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document with ID {document_id} not found."
-        )
+def extract_document(
+    document_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    # Verify the document exists and belongs to user
+    get_user_document(document_id, current_user, db)
 
     # Perform text extraction
     updated_document = document_service.extract_document_text(document_id, db)
@@ -159,3 +176,35 @@ def extract_document(document_id: int, db: Session = Depends(get_db)):
         extracted_text_length=extracted_text_length,
         extracted_text=updated_document.extracted_text
     )
+
+@router.post("/documents/{document_id}/analyze-evidence", response_model=EvidenceAnalysisResponse)
+def analyze_evidence_for_document(
+    document_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    # Verify ownership
+    get_user_document(document_id, current_user, db)
+
+    try:
+        evidence = evidence_service.analyze_evidence(document_id, db)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error("Evidence analysis endpoint error: %s", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while analyzing evidence."
+        )
+        
+    if not evidence:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document with ID {document_id} not found."
+        )
+        
+    return evidence
